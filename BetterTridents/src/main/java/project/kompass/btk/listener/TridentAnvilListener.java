@@ -1,5 +1,6 @@
 package project.kompass.btk.listener;
 
+import project.kompass.btk.util.TridentUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
@@ -29,7 +30,13 @@ public class TridentAnvilListener implements Listener {
     public void onAnvilUse(PrepareAnvilEvent event) {
         ItemStack first = event.getInventory().getItem(0);
         ItemStack second = event.getInventory().getItem(1);
-        if (first == null || first.getType() != Material.TRIDENT || second == null) return;
+        if (first == null || second == null) return;
+
+        Material type = first.getType();
+        boolean isTrident = (type == Material.TRIDENT);
+        boolean isTool = TridentUtil.isDamageDealingTool(first);
+
+        if (!isTrident && !isTool) return;
 
         ItemStack result = first.clone();
         Map<Enchantment, Integer> incoming = second.getType() == Material.ENCHANTED_BOOK
@@ -39,12 +46,33 @@ public class TridentAnvilListener implements Listener {
         int added = 0;
 
         for (var entry : incoming.entrySet()) {
-            if (!ALLOWED_ENCHANTMENTS.contains(entry.getKey())) continue;
-            int cur = result.getEnchantmentLevel(entry.getKey());
-            int next = (cur == entry.getValue()) ? cur + 1 : Math.max(cur, entry.getValue());
-            if (next > cur) {
-                result.addUnsafeEnchantment(entry.getKey(), next);
-                added++;
+            Enchantment enchant = entry.getKey();
+            int incomingLvl = entry.getValue();
+
+            boolean canApply = false;
+
+            if (isTrident) {
+                // Allows only standard enchantments (Piercing removed)
+                if (ALLOWED_ENCHANTMENTS.contains(enchant)) {
+                    canApply = true;
+                }
+            } else {
+                if (enchant.equals(Enchantment.CHANNELING)) {
+                    canApply = true;
+                }
+            }
+
+            if (canApply) {
+                int cur = result.getEnchantmentLevel(enchant);
+                int next = (cur == incomingLvl) ? cur + 1 : Math.max(cur, incomingLvl);
+
+                int maxLevel = enchant.getMaxLevel();
+                next = Math.min(next, maxLevel);
+
+                if (next > cur) {
+                    result.addUnsafeEnchantment(enchant, next);
+                    added++;
+                }
             }
         }
 

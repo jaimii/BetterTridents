@@ -22,8 +22,10 @@ public class TridentRiptideListener implements Listener {
         if (!TridentUtil.isTrident(item) || !item.containsEnchantment(Enchantment.RIPTIDE)) return;
 
         Player player = event.getPlayer();
-        boolean isWet = player.isInWater() || (player.getWorld().hasStorm() && player.getLocation().getBlock().getLightFromSky() > 0);
+        boolean isWet = TridentUtil.isPlayerWet(player);
 
+        // works in dry weather and snowfall with a 5s cooldown.
+        // Wet players run standard vanilla Riptide with no cooldown.
         if (!isWet && !player.hasCooldown(Material.TRIDENT)) {
             event.setCancelled(true);
             int level = item.getEnchantmentLevel(Enchantment.RIPTIDE);
@@ -32,7 +34,7 @@ public class TridentRiptideListener implements Listener {
             player.startRiptideAttack(20, (float) TRIDENT_BASE_DAMAGE, item);
 
             player.getWorld().playSound(player.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 1.0f, 1.0f);
-            player.setCooldown(Material.TRIDENT, 15);
+            player.setCooldown(Material.TRIDENT, 100); // 100 ticks = 5 seconds
         }
     }
 }

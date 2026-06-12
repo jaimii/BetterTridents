@@ -13,51 +13,75 @@ import org.bukkit.inventory.ItemStack;
 
 public class TridentAttributeListener implements Listener {
 
-    private static final double TRIDENT_ATTACK_SPEED = 4.2;
-    private static final double DEFAULT_ATTACK_SPEED = 4.0;
-    private static final double TRIDENT_REACH = 5.2;
+    private static final double TRIDENT_REACH = 4.5;
+    private static final double LUNGE_ANIMATION_TICKS = 12.0; // Standard lunge animation is 12 ticks
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        applyTridentAttributesIfHeld(event.getPlayer());
+        applyHeldAttributes(event.getPlayer());
     }
 
     @EventHandler
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         resetAttributes(event.getPlayer());
-        applyTridentAttributesIfHeld(event.getPlayer());
+        applyHeldAttributes(event.getPlayer());
     }
 
     @EventHandler
     public void onItemHold(PlayerItemHeldEvent event) {
-        resetAttributes(event.getPlayer());
-        ItemStack item = event.getPlayer().getInventory().getItem(event.getNewSlot());
-        if (TridentUtil.isTrident(item)) {
-            applyTridentAttributes(event.getPlayer());
+        Player player = event.getPlayer();
+        ItemStack newItem = player.getInventory().getItem(event.getNewSlot());
+
+        resetAttributes(player);
+        if (TridentUtil.isTrident(newItem)) {
+            applyTridentAttributes(player);
+        } else if (TridentUtil.isSpear(newItem)) {
+            applySpearAttributes(player, newItem);
         }
     }
 
     @EventHandler
     public void onPlayerDropItem(PlayerDropItemEvent event) {
-        if (TridentUtil.isTrident(event.getItemDrop().getItemStack())) {
+        ItemStack item = event.getItemDrop().getItemStack();
+        if (TridentUtil.isTrident(item) || TridentUtil.isSpear(item)) {
             resetAttributes(event.getPlayer());
         }
     }
 
-    private void applyTridentAttributesIfHeld(Player player) {
-        if (TridentUtil.isTrident(player.getInventory().getItemInMainHand())) {
+    private void applyHeldAttributes(Player player) {
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (TridentUtil.isTrident(held)) {
             applyTridentAttributes(player);
+        } else if (TridentUtil.isSpear(held)) {
+            applySpearAttributes(player, held);
         }
     }
 
     private void applyTridentAttributes(Player player) {
-        AttributeInstance speed = player.getAttribute(Attribute.ATTACK_SPEED);
-        if (speed != null) {
-            speed.setBaseValue(TRIDENT_ATTACK_SPEED);
-        }
-
         applyRangeModifier(player, Attribute.ENTITY_INTERACTION_RANGE, TRIDENT_REACH, TridentUtil.RANGE_KEY);
         applyRangeModifier(player, Attribute.BLOCK_INTERACTION_RANGE, TRIDENT_REACH, TridentUtil.BLOCK_RANGE_KEY);
+
+        AttributeInstance speedInstance = player.getAttribute(Attribute.ATTACK_SPEED);
+        if (speedInstance != null && speedInstance.getModifier(TridentUtil.SPEED_KEY) == null) {
+            speedInstance.addModifier(new AttributeModifier(TridentUtil.SPEED_KEY, 0.2,
+                    AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
+    }
+
+    private void applySpearAttributes(Player player, ItemStack spear) {
+        // Change attack speed if enchanted with Lunge to align perfectly with animation duration
+        if (spear.containsEnchantment(org.bukkit.enchantments.Enchantment.LUNGE)) {
+            AttributeInstance speedInstance = player.getAttribute(Attribute.ATTACK_SPEED);
+            if (speedInstance != null && speedInstance.getModifier(TridentUtil.SPEED_KEY) == null) {
+                // Target speed = 20.0 / animationTicks (e.g. 1.67)
+                // Default spear base is 4.0 and subtracts 2.8 (yielding 1.2). We add the difference.
+                double targetSpeed = 20.0 / LUNGE_ANIMATION_TICKS;
+                double modifierAmount = targetSpeed - 1.2;
+
+                speedInstance.addModifier(new AttributeModifier(TridentUtil.SPEED_KEY, modifierAmount,
+                        AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            }
+        }
     }
 
     private void applyRangeModifier(Player player, Attribute attribute, double targetValue, org.bukkit.NamespacedKey key) {
@@ -70,19 +94,19 @@ public class TridentAttributeListener implements Listener {
     }
 
     private void resetAttributes(Player player) {
-        AttributeInstance speed = player.getAttribute(Attribute.ATTACK_SPEED);
-        if (speed != null) {
-            speed.setBaseValue(DEFAULT_ATTACK_SPEED);
+        AttributeInstance rangeInstance = player.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
+        if (rangeInstance != null && rangeInstance.getModifier(TridentUtil.RANGE_KEY) != null) {
+            rangeInstance.removeModifier(TridentUtil.RANGE_KEY);
         }
 
-        AttributeInstance entityRange = player.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
-        if (entityRange != null) {
-            entityRange.removeModifier(TridentUtil.RANGE_KEY);
+        AttributeInstance blockRangeInstance = player.getAttribute(Attribute.BLOCK_INTERACTION_RANGE);
+        if (blockRangeInstance != null && blockRangeInstance.getModifier(TridentUtil.BLOCK_RANGE_KEY) != null) {
+            blockRangeInstance.removeModifier(TridentUtil.BLOCK_RANGE_KEY);
         }
 
-        AttributeInstance blockRange = player.getAttribute(Attribute.BLOCK_INTERACTION_RANGE);
-        if (blockRange != null) {
-            blockRange.removeModifier(TridentUtil.BLOCK_RANGE_KEY);
+        AttributeInstance speedInstance = player.getAttribute(Attribute.ATTACK_SPEED);
+        if (speedInstance != null && speedInstance.getModifier(TridentUtil.SPEED_KEY) != null) {
+            speedInstance.removeModifier(TridentUtil.SPEED_KEY);
         }
     }
 }

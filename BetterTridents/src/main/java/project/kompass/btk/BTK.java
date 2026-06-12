@@ -10,17 +10,20 @@ public class BTK extends JavaPlugin {
     public void onEnable() {
         PluginManager pm = getServer().getPluginManager();
 
-        // Register all separated listener classes
         pm.registerEvents(new TridentAttributeListener(), this);
         pm.registerEvents(new TridentRiptideListener(), this);
-        pm.registerEvents(new TridentChannelingListener(), this);
+        pm.registerEvents(new TridentChannelingListener(this), this);
         pm.registerEvents(new TridentDamageListener(), this);
         pm.registerEvents(new TridentLootingListener(), this);
         pm.registerEvents(new TridentAnvilListener(), this);
+        pm.registerEvents(new SpearListener(), this);
+
+        CopperArmorListener copperArmorListener = new CopperArmorListener();
+        pm.registerEvents(copperArmorListener, this);
+        copperArmorListener.startArmorCheckTask(this);
     }
 
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
     }
 }
