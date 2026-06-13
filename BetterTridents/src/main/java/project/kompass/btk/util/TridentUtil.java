@@ -17,8 +17,9 @@ public final class TridentUtil {
     public static final NamespacedKey BLOCK_RANGE_KEY = new NamespacedKey("better_tridents", "block_reach");
     public static final NamespacedKey SPEED_KEY = new NamespacedKey("better_tridents", "attack_speed");
 
-    // Modern persistent key replacing legacy deprecated metadata
+    // Modern persistent keys replacing legacy deprecated metadata
     public static final NamespacedKey CHANNELING_PROTECTED_KEY = new NamespacedKey("better_tridents", "channeling_protected");
+    public static final NamespacedKey CHANNELING_LIGHTNING_KEY = new NamespacedKey("better_tridents", "channeling_lightning");
 
     private static final Set<Material> DAMAGE_TOOLS = EnumSet.noneOf(Material.class);
     private static final Set<Material> SPEARS = EnumSet.noneOf(Material.class);
@@ -28,7 +29,7 @@ public final class TridentUtil {
             String name = material.name();
             if (name.startsWith("LEGACY_")) continue;
 
-            if (name.contains("SWORD") || name.contains("AXE") || name.contains("SPEAR") || name.contains("TRIDENT") || name.contains("MACE")) {
+            if (name.contains("SWORD") || name.contains("PICKAXE") || name.contains("AXE") || name.contains("SHOVEL") || name.contains("HOE") || name.contains("SPEAR") || name.contains("TRIDENT") || name.contains("MACE")) {
                 DAMAGE_TOOLS.add(material);
             }
             if (name.contains("SPEAR")) {

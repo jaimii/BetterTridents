@@ -20,9 +20,8 @@ public class SpearListener implements Listener {
         Player player = event.getPlayer();
         ItemStack item = player.getInventory().getItemInMainHand();
 
+        // Clear visual cooldown sweeps only for lunge spears
         if (TridentUtil.isSpear(item) && item.containsEnchantment(Enchantment.LUNGE)) {
-            // Because the spear's attack speed attribute now aligns perfectly with the
-            // lunge animation duration, we only need to clear the visual item cooldown overlay.
             if (player.hasCooldown(item.getType())) {
                 Bukkit.getScheduler().runTask(JavaPlugin.getPlugin(BTK.class), () -> {
                     if (player.isOnline()) {

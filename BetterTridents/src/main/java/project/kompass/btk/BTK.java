@@ -21,9 +21,11 @@ public class BTK extends JavaPlugin {
         CopperArmorListener copperArmorListener = new CopperArmorListener();
         pm.registerEvents(copperArmorListener, this);
         copperArmorListener.startArmorCheckTask(this);
+        copperArmorListener.startParticleTask(this); // Registers the ambient particle loop
     }
 
     @Override
     public void onDisable() {
+        // Plugin shutdown logic
     }
 }

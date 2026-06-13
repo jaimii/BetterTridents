@@ -22,7 +22,7 @@ public class TridentChannelingListener implements Listener {
         this.plugin = plugin;
     }
 
-    // Handles Channeling logic when a thrown trident hits a target (Piercing code has been removed)
+    // Handles Channeling logic when a thrown trident hits a target
     @EventHandler
     public void onTridentHit(ProjectileHitEvent event) {
         if (!(event.getEntity() instanceof Trident trident)) return;
@@ -32,12 +32,20 @@ public class TridentChannelingListener implements Listener {
             if (event.getHitEntity() != null) {
                 Entity victim = event.getHitEntity();
                 LightningStrike strike = trident.getWorld().spawn(victim.getLocation(), LightningStrike.class);
+
+                // Tag lightning strike as channeling
+                strike.getPersistentDataContainer().set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, (byte) 1);
+
                 if (trident.getShooter() instanceof Player p) {
                     strike.setCausingPlayer(p);
                 }
             } else if (event.getHitBlock() != null) {
                 Location loc = event.getHitBlock().getLocation();
                 LightningStrike strike = trident.getWorld().spawn(loc, LightningStrike.class);
+
+                // Tag lightning strike as channeling
+                strike.getPersistentDataContainer().set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, (byte) 1);
+
                 if (trident.getShooter() instanceof Player p) {
                     strike.setCausingPlayer(p);
                 }
@@ -55,6 +63,10 @@ public class TridentChannelingListener implements Listener {
         if (TridentUtil.isDamageDealingTool(item)) {
             Entity victim = event.getEntity();
             LightningStrike strike = player.getWorld().spawn(victim.getLocation(), LightningStrike.class);
+
+            // Tag lightning strike as channeling
+            strike.getPersistentDataContainer().set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, (byte) 1);
+
             strike.setCausingPlayer(player);
         }
     }
@@ -71,6 +83,21 @@ public class TridentChannelingListener implements Listener {
                 }
             }
 
+            // Distinguish between channeling and natural lightning damage calculations
+            boolean isChanneling = lightning.getPersistentDataContainer().has(
+                    TridentUtil.CHANNELING_LIGHTNING_KEY,
+                    PersistentDataType.BYTE
+            );
+
+            if (isChanneling) {
+                // Channeling lightning deals exactly 1 heart of damage (2.0 HP)
+                event.setDamage(2.0);
+            } else {
+                // Natural lightning strikes retain 2.5 hearts of damage (5.0 HP)
+                event.setDamage(5.0);
+            }
+
+            // In both scenarios, ignore target armor values
             if (event.isApplicable(EntityDamageEvent.DamageModifier.ARMOR)) {
                 event.setDamage(EntityDamageEvent.DamageModifier.ARMOR, 0.0);
             }

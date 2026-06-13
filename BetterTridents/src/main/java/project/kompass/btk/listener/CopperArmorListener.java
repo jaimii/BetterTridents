@@ -6,7 +6,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
-import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.EntityEquipment;
@@ -14,40 +13,91 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 
 public class CopperArmorListener implements Listener {
 
     private final Random random = new Random();
 
+    // 1. Core strike check task (Executes every 30 seconds)
     public void startArmorCheckTask(JavaPlugin plugin) {
         new BukkitRunnable() {
             @Override
             public void run() {
-                // 1. Sweep online players first
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player.getWorld().hasStorm()) {
-                        checkAndStrike(player, player.getWorld());
-                    }
-                }
+                Set<LivingEntity> processed = new HashSet<>();
 
-                // 2. Sweep mobs in loaded storming worlds using optimized getEntitiesByClass()
-                for (World world : Bukkit.getWorlds()) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    World world = player.getWorld();
                     if (!world.hasStorm()) continue;
 
-                    for (Mob mob : world.getEntitiesByClass(Mob.class)) {
-                        checkAndStrike(mob, world);
+                    int playerHighestY = world.getHighestBlockYAt(player.getLocation());
+                    if (player.getLocation().getBlockY() < playerHighestY) continue;
+
+                    // Process player
+                    if (!processed.contains(player)) {
+                        processed.add(player);
+                        checkAndStrike(player, world);
+                    }
+
+                    // Process nearby mobs within a 32-block radius
+                    double radius = 32.0;
+                    for (Entity nearby : player.getNearbyEntities(radius, radius, radius)) {
+                        if (nearby instanceof Mob mob) {
+                            if (processed.contains(mob)) continue;
+                            processed.add(mob);
+
+                            int mobHighestY = world.getHighestBlockYAt(mob.getLocation());
+                            if (mob.getLocation().getBlockY() < mobHighestY) continue;
+
+                            checkAndStrike(mob, world);
+                        }
                     }
                 }
             }
-        }.runTaskTimer(plugin, 600L, 600L); // Execute every 30 seconds
+        }.runTaskTimer(plugin, 600L, 600L);
+    }
+
+    // 2. High-performance ambient particle task (Executes every 10 ticks / 0.5 seconds)
+    public void startParticleTask(JavaPlugin plugin) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Set<LivingEntity> processed = new HashSet<>();
+
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    World world = player.getWorld();
+                    if (!world.hasStorm()) continue;
+
+                    // Process player particles
+                    if (!processed.contains(player)) {
+                        processed.add(player);
+                        int playerHighestY = world.getHighestBlockYAt(player.getLocation());
+                        if (player.getLocation().getBlockY() >= playerHighestY) {
+                            spawnCopperParticlesIfEligible(player, world);
+                        }
+                    }
+
+                    // Process nearby mob particles within a 32-block radius
+                    double radius = 32.0;
+                    for (Entity nearby : player.getNearbyEntities(radius, radius, radius)) {
+                        if (nearby instanceof Mob mob) {
+                            if (processed.contains(mob)) continue;
+                            processed.add(mob);
+
+                            int mobHighestY = world.getHighestBlockYAt(mob.getLocation());
+                            if (mob.getLocation().getBlockY() >= mobHighestY) {
+                                spawnCopperParticlesIfEligible(mob, world);
+                            }
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 10L, 10L);
     }
 
     private void checkAndStrike(LivingEntity entity, World world) {
-        // Must be exposed to open sky
-        int highestY = world.getHighestBlockYAt(entity.getLocation());
-        if (entity.getLocation().getBlockY() < highestY) return;
-
         EntityEquipment equipment = entity.getEquipment();
         if (equipment == null) return;
 
@@ -60,27 +110,46 @@ public class CopperArmorListener implements Listener {
         }
         if (copperCount == 0) return;
 
-        // Cumulative 25% chance per copper piece
         double chance = copperCount * 0.25;
         if (random.nextDouble() < chance) {
             world.strikeLightning(entity.getLocation());
+        }
+    }
 
-            // 3. Strike any nearby hostile mobs wearing any piece of copper armor.
-            double radius = 16.0; // 16 block search bounds
-            for (Entity nearby : entity.getNearbyEntities(radius, radius, radius)) {
-                if (nearby instanceof Monster hostile) {
-                    EntityEquipment hostileEquipment = hostile.getEquipment();
-                    if (hostileEquipment != null) {
-                        for (ItemStack armor : hostileEquipment.getArmorContents()) {
-                            if (armor != null && isCopperArmor(armor.getType())) {
-                                world.strikeLightning(hostile.getLocation());
-                                break; // Strike once and continue to the next mob
-                            }
-                        }
-                    }
-                }
+    private void spawnCopperParticlesIfEligible(LivingEntity entity, World world) {
+        EntityEquipment equipment = entity.getEquipment();
+        if (equipment == null) return;
+
+        ItemStack[] armorContents = equipment.getArmorContents();
+        int copperCount = 0;
+        for (ItemStack item : armorContents) {
+            if (item != null && isCopperArmor(item.getType())) {
+                copperCount++;
             }
         }
+        if (copperCount == 0) return;
+
+        // Scale the particle quantity based on the piece count
+        int particleCount = copperCount * 2;
+        if (copperCount == 4) {
+            particleCount = 10; // Extra intense for full sets
+        }
+
+        // Adjust boundaries dynamically to scale the "leap" width of the sparks
+        double offsetX = 0.15 * copperCount;
+        double offsetY = entity.getHeight() / 2.0;
+        double offsetZ = 0.15 * copperCount;
+
+        // Spawn ELECTRIC_SPARK particles relative to the entity's center point
+        world.spawnParticle(
+                org.bukkit.Particle.ELECTRIC_SPARK,
+                entity.getLocation().add(0, offsetY, 0),
+                particleCount,
+                offsetX,
+                offsetY,
+                offsetZ,
+                0.01 // Minimal particle speed/noise parameter
+        );
     }
 
     private boolean isCopperArmor(Material type) {

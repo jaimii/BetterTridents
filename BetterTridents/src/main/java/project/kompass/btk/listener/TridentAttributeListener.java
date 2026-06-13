@@ -14,7 +14,8 @@ import org.bukkit.inventory.ItemStack;
 public class TridentAttributeListener implements Listener {
 
     private static final double TRIDENT_REACH = 4.5;
-    private static final double LUNGE_ANIMATION_TICKS = 12.0; // Standard lunge animation is 12 ticks
+    private static final double LUNGE_COOLDOWN_TICKS = 6.0; // 6 ticks per lunge for spears
+    private static final double LUNGE_ATTACK_SPEED = 20.0 / LUNGE_COOLDOWN_TICKS; // 3.33 attacks per second
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -34,7 +35,7 @@ public class TridentAttributeListener implements Listener {
 
         resetAttributes(player);
         if (TridentUtil.isTrident(newItem)) {
-            applyTridentAttributes(player);
+            applyTridentAttributes(player, newItem);
         } else if (TridentUtil.isSpear(newItem)) {
             applySpearAttributes(player, newItem);
         }
@@ -51,32 +52,31 @@ public class TridentAttributeListener implements Listener {
     private void applyHeldAttributes(Player player) {
         ItemStack held = player.getInventory().getItemInMainHand();
         if (TridentUtil.isTrident(held)) {
-            applyTridentAttributes(player);
+            applyTridentAttributes(player, held);
         } else if (TridentUtil.isSpear(held)) {
             applySpearAttributes(player, held);
         }
     }
 
-    private void applyTridentAttributes(Player player) {
+    private void applyTridentAttributes(Player player, ItemStack trident) {
         applyRangeModifier(player, Attribute.ENTITY_INTERACTION_RANGE, TRIDENT_REACH, TridentUtil.RANGE_KEY);
         applyRangeModifier(player, Attribute.BLOCK_INTERACTION_RANGE, TRIDENT_REACH, TridentUtil.BLOCK_RANGE_KEY);
 
         AttributeInstance speedInstance = player.getAttribute(Attribute.ATTACK_SPEED);
         if (speedInstance != null && speedInstance.getModifier(TridentUtil.SPEED_KEY) == null) {
+            // Standard Better Trident speed: add 0.2 to vanilla 1.1, yielding 1.3
             speedInstance.addModifier(new AttributeModifier(TridentUtil.SPEED_KEY, 0.2,
                     AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         }
     }
 
     private void applySpearAttributes(Player player, ItemStack spear) {
-        // Change attack speed if enchanted with Lunge to align perfectly with animation duration
+        // Change attack speed if enchanted with Lunge to align perfectly with the 6-tick duration
         if (spear.containsEnchantment(org.bukkit.enchantments.Enchantment.LUNGE)) {
             AttributeInstance speedInstance = player.getAttribute(Attribute.ATTACK_SPEED);
             if (speedInstance != null && speedInstance.getModifier(TridentUtil.SPEED_KEY) == null) {
-                // Target speed = 20.0 / animationTicks (e.g. 1.67)
-                // Default spear base is 4.0 and subtracts 2.8 (yielding 1.2). We add the difference.
-                double targetSpeed = 20.0 / LUNGE_ANIMATION_TICKS;
-                double modifierAmount = targetSpeed - 1.2;
+                // 6 ticks per lunge (3.33 speed). Spears natively yield 1.2, so we add the difference.
+                double modifierAmount = LUNGE_ATTACK_SPEED - 1.2;
 
                 speedInstance.addModifier(new AttributeModifier(TridentUtil.SPEED_KEY, modifierAmount,
                         AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
