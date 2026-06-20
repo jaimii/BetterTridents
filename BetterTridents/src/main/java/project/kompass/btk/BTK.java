@@ -10,6 +10,7 @@ public class BTK extends JavaPlugin {
     public void onEnable() {
         PluginManager pm = getServer().getPluginManager();
 
+        // Register all separated listener classes
         pm.registerEvents(new TridentAttributeListener(), this);
         pm.registerEvents(new TridentRiptideListener(), this);
         pm.registerEvents(new TridentChannelingListener(this), this);
@@ -17,11 +18,13 @@ public class BTK extends JavaPlugin {
         pm.registerEvents(new TridentLootingListener(), this);
         pm.registerEvents(new TridentAnvilListener(), this);
         pm.registerEvents(new SpearListener(), this);
+        pm.registerEvents(new PotionSoupStackListener(), this); // Register the stacking modifier
 
+        // Initiate Copper Armor hazard loops & particle task
         CopperArmorListener copperArmorListener = new CopperArmorListener();
         pm.registerEvents(copperArmorListener, this);
         copperArmorListener.startArmorCheckTask(this);
-        copperArmorListener.startParticleTask(this); // Registers the ambient particle loop
+        copperArmorListener.startParticleTask(this);
     }
 
     @Override

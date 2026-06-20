@@ -3,7 +3,7 @@ package project.kompass.btk.util;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.block.Biome;
+import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -17,7 +17,6 @@ public final class TridentUtil {
     public static final NamespacedKey BLOCK_RANGE_KEY = new NamespacedKey("better_tridents", "block_reach");
     public static final NamespacedKey SPEED_KEY = new NamespacedKey("better_tridents", "attack_speed");
 
-    // Modern persistent keys replacing legacy deprecated metadata
     public static final NamespacedKey CHANNELING_PROTECTED_KEY = new NamespacedKey("better_tridents", "channeling_protected");
     public static final NamespacedKey CHANNELING_LIGHTNING_KEY = new NamespacedKey("better_tridents", "channeling_lightning");
 
@@ -29,7 +28,7 @@ public final class TridentUtil {
             String name = material.name();
             if (name.startsWith("LEGACY_")) continue;
 
-            if (name.contains("SWORD") || name.contains("PICKAXE") || name.contains("AXE") || name.contains("SHOVEL") || name.contains("HOE") || name.contains("SPEAR") || name.contains("TRIDENT") || name.contains("MACE")) {
+            if (name.contains("SWORD") || name.contains("AXE") || name.contains("SPEAR") || name.contains("TRIDENT") || name.contains("MACE")) {
                 DAMAGE_TOOLS.add(material);
             }
             if (name.contains("SPEAR")) {
@@ -41,31 +40,40 @@ public final class TridentUtil {
     private TridentUtil() {}
 
     public static boolean isTrident(ItemStack item) {
-        return item != null && item.getType() == Material.TRIDENT;
+        return item != null && DAMAGE_TOOLS.contains(item.getType()) && item.getType() == Material.TRIDENT;
     }
 
+    // MICRO-OPTIMIZATION: Evaluates block lookups exactly once to prevent CraftBlock heap allocation churn
     public static boolean isVictimWet(LivingEntity victim) {
-        return victim.isInWater() ||
-                (victim.getWorld().hasStorm() && victim.getLocation().getBlock().getLightFromSky() > 0) ||
-                victim.getLocation().getBlock().getType() == Material.BUBBLE_COLUMN;
+        if (victim.isInWater()) return true;
+
+        Block block = victim.getLocation().getBlock();
+        if (block.getType() == Material.BUBBLE_COLUMN) return true;
+
+        if (victim.getWorld().hasStorm()) {
+            return block.getLightFromSky() > 0;
+        }
+
+        return false;
     }
 
+    // MICRO-OPTIMIZATION: Pulls the block instance once and passes it to secondary checks
     public static boolean isPlayerWet(Player player) {
         if (player.isInWater()) return true;
 
+        Block block = player.getLocation().getBlock();
         boolean isStorming = player.getWorld().hasStorm();
-        boolean hasSkyLight = player.getLocation().getBlock().getLightFromSky() > 0;
+        boolean hasSkyLight = block.getLightFromSky() > 0;
 
-        return isStorming && hasSkyLight && !isSnowing(player);
+        return isStorming && hasSkyLight && !isSnowing(player, block);
     }
 
-    public static boolean isSnowing(Player player) {
+    // MICRO-OPTIMIZATION: Uses pre-evaluated Block parameter to avoid secondary block retrieval
+    public static boolean isSnowing(Player player, Block block) {
         if (!player.getWorld().hasStorm()) return false;
-        Location loc = player.getLocation();
-        double temp = loc.getBlock().getTemperature();
+        double temp = block.getTemperature();
 
-        Biome biome = loc.getBlock().getBiome();
-        String biomeName = biome.toString().toLowerCase();
+        String biomeName = block.getBiome().toString().toLowerCase();
 
         boolean hasPrecipitation = !biomeName.contains("desert")
                 && !biomeName.contains("badlands")

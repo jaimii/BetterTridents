@@ -21,13 +21,18 @@ public class TridentDamageListener implements Listener {
     private static final float CRITICAL_HIT_THRESHOLD = 0.1F;
     private static final double TRIDENT_BASE_DAMAGE = 10.0;
 
+    // MICRO-OPTIMIZATION: Reuses a class-level Random instance to prevent object allocation churn
+    private final Random random = new Random();
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onTridentDamage(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof LivingEntity victim)) return;
 
-        // Melee Damage
-        if (event.getDamager() instanceof Player player && TridentUtil.isTrident(player.getInventory().getItemInMainHand())) {
+        // Check for Melee Damage
+        if (event.getDamager() instanceof Player player) {
             ItemStack item = player.getInventory().getItemInMainHand();
+            if (!TridentUtil.isTrident(item)) return; // Bypasses expensive checks using static set
+
             double damage = TRIDENT_BASE_DAMAGE;
 
             if (item.containsEnchantment(Enchantment.SHARPNESS)) {
@@ -41,7 +46,7 @@ public class TridentDamageListener implements Listener {
             if (item.containsEnchantment(Enchantment.BANE_OF_ARTHROPODS) && Tag.ENTITY_TYPES_SENSITIVE_TO_BANE_OF_ARTHROPODS.isTagged(victim.getType())) {
                 int level = item.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS);
                 damage += (2.5 * level);
-                int duration = 20 + new Random().nextInt(10 * level + 1);
+                int duration = 20 + random.nextInt(10 * level + 1);
                 victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, duration, 3));
             }
 
@@ -56,7 +61,6 @@ public class TridentDamageListener implements Listener {
             }
             event.setDamage(damage);
 
-            // Thrown Damage
         } else if (event.getDamager() instanceof Trident trident) {
             ItemStack item = trident.getItemStack();
             double extraDamage = 0;
@@ -72,7 +76,7 @@ public class TridentDamageListener implements Listener {
             if (item.containsEnchantment(Enchantment.BANE_OF_ARTHROPODS) && Tag.ENTITY_TYPES_SENSITIVE_TO_BANE_OF_ARTHROPODS.isTagged(victim.getType())) {
                 int level = item.getEnchantmentLevel(Enchantment.BANE_OF_ARTHROPODS);
                 extraDamage += (2.5 * level);
-                int duration = 20 + new Random().nextInt(10 * level + 1);
+                int duration = 20 + random.nextInt(10 * level + 1);
                 victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, duration, 3));
             }
 

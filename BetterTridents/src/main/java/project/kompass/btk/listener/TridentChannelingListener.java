@@ -22,7 +22,6 @@ public class TridentChannelingListener implements Listener {
         this.plugin = plugin;
     }
 
-    // Handles Channeling logic when a thrown trident hits a target
     @EventHandler
     public void onTridentHit(ProjectileHitEvent event) {
         if (!(event.getEntity() instanceof Trident trident)) return;
@@ -33,7 +32,6 @@ public class TridentChannelingListener implements Listener {
                 Entity victim = event.getHitEntity();
                 LightningStrike strike = trident.getWorld().spawn(victim.getLocation(), LightningStrike.class);
 
-                // Tag lightning strike as channeling
                 strike.getPersistentDataContainer().set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, (byte) 1);
 
                 if (trident.getShooter() instanceof Player p) {
@@ -43,7 +41,6 @@ public class TridentChannelingListener implements Listener {
                 Location loc = event.getHitBlock().getLocation();
                 LightningStrike strike = trident.getWorld().spawn(loc, LightningStrike.class);
 
-                // Tag lightning strike as channeling
                 strike.getPersistentDataContainer().set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, (byte) 1);
 
                 if (trident.getShooter() instanceof Player p) {
@@ -53,7 +50,6 @@ public class TridentChannelingListener implements Listener {
         }
     }
 
-    // Channeling on all melee damage-dealing tools
     @EventHandler
     public void onMeleeHit(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
@@ -64,14 +60,12 @@ public class TridentChannelingListener implements Listener {
             Entity victim = event.getEntity();
             LightningStrike strike = player.getWorld().spawn(victim.getLocation(), LightningStrike.class);
 
-            // Tag lightning strike as channeling
             strike.getPersistentDataContainer().set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, (byte) 1);
 
             strike.setCausingPlayer(player);
         }
     }
 
-    // Handles self-damage cancellation & forces lightning to bypass armor protection
     @SuppressWarnings("deprecation")
     @EventHandler
     public void onLightningDamage(EntityDamageByEntityEvent event) {
@@ -83,28 +77,23 @@ public class TridentChannelingListener implements Listener {
                 }
             }
 
-            // Distinguish between channeling and natural lightning damage calculations
             boolean isChanneling = lightning.getPersistentDataContainer().has(
                     TridentUtil.CHANNELING_LIGHTNING_KEY,
                     PersistentDataType.BYTE
             );
 
             if (isChanneling) {
-                // Channeling lightning deals exactly 1 heart of damage (2.0 HP)
                 event.setDamage(2.0);
             } else {
-                // Natural lightning strikes retain 2.5 hearts of damage (5.0 HP)
                 event.setDamage(5.0);
             }
 
-            // In both scenarios, ignore target armor values
             if (event.isApplicable(EntityDamageEvent.DamageModifier.ARMOR)) {
                 event.setDamage(EntityDamageEvent.DamageModifier.ARMOR, 0.0);
             }
         }
     }
 
-    // Protect items dropped by any mob when killed with Channeling
     @EventHandler
     public void onMobDeath(EntityDeathEvent event) {
         if (!(event.getEntity() instanceof Mob mob)) return;
@@ -132,20 +121,19 @@ public class TridentChannelingListener implements Listener {
             final java.util.List<ItemStack> drops = new java.util.ArrayList<>(event.getDrops());
             final Location deathLoc = mob.getLocation();
 
-            // Check surrounding drops on the next tick
             org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
-                for (Entity entity : deathLoc.getWorld().getNearbyEntities(deathLoc, 1.5, 1.5, 1.5)) {
-                    if (entity instanceof Item itemEntity) {
-                        ItemStack itemStack = itemEntity.getItemStack();
-                        for (ItemStack drop : drops) {
-                            if (drop.isSimilar(itemStack)) {
-                                itemEntity.getPersistentDataContainer().set(
-                                        TridentUtil.CHANNELING_PROTECTED_KEY,
-                                        PersistentDataType.BYTE,
-                                        (byte) 1
-                                );
-                                break;
-                            }
+                // OPTIMIZATION: Uses Spigot's predicate filter to return ONLY Item drop entities, bypassing nearby mobs/players
+                for (Entity entity : deathLoc.getWorld().getNearbyEntities(deathLoc, 1.5, 1.5, 1.5, entity -> entity instanceof Item)) {
+                    Item itemEntity = (Item) entity;
+                    ItemStack itemStack = itemEntity.getItemStack();
+                    for (ItemStack drop : drops) {
+                        if (drop.isSimilar(itemStack)) {
+                            itemEntity.getPersistentDataContainer().set(
+                                    TridentUtil.CHANNELING_PROTECTED_KEY,
+                                    PersistentDataType.BYTE,
+                                    (byte) 1
+                            );
+                            break;
                         }
                     }
                 }
@@ -153,7 +141,6 @@ public class TridentChannelingListener implements Listener {
         }
     }
 
-    // Cancel environment damage to protected mob drops
     @EventHandler
     public void onItemDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Item item) {
