@@ -1,6 +1,6 @@
 package project.kompass.btk.listener
 
-import project.kompass.btk.util.TridentUtil
+import project.kompass.btk.util.isDamageDealingTool
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.enchantments.Enchantment
@@ -30,7 +30,7 @@ class TridentAnvilListener : Listener {
 
         val type = first.type
         val isTrident = type == Material.TRIDENT
-        val isTool = TridentUtil.isDamageDealingTool(first)
+        val isTool = first.isDamageDealingTool()
 
         if (!isTrident && !isTool) return
 

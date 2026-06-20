@@ -2,8 +2,8 @@ package project.kompass.btk.listener
 
 import project.kompass.btk.BTK
 import project.kompass.btk.util.TridentUtil
+import project.kompass.btk.util.isDamageDealingTool
 import org.bukkit.Bukkit
-import org.bukkit.Location
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.*
 import org.bukkit.event.EventHandler
@@ -12,7 +12,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.ProjectileHitEvent
-import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 
 class TridentChannelingListener(private val plugin: BTK) : Listener {
@@ -44,7 +43,7 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
         val item = player.inventory.itemInMainHand
         if (!item.containsEnchantment(Enchantment.CHANNELING)) return
 
-        if (TridentUtil.isDamageDealingTool(item)) {
+        if (item.isDamageDealingTool()) {
             val victim = event.entity
             val strike = player.world.spawn(victim.location, LightningStrike::class.java)
             strike.persistentDataContainer.set(TridentUtil.CHANNELING_LIGHTNING_KEY, PersistentDataType.BYTE, 1.toByte())
@@ -93,7 +92,7 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
                 }
             } else if (damager is Player) {
                 val hand = damager.inventory.itemInMainHand
-                if (hand.containsEnchantment(Enchantment.CHANNELING) && TridentUtil.isDamageDealingTool(hand)) {
+                if (hand.containsEnchantment(Enchantment.CHANNELING) && hand.isDamageDealingTool()) { // Updated to extension syntax
                     killedByChanneling = true
                 }
             } else if (damager is LightningStrike) {
