@@ -1,6 +1,7 @@
 package project.kompass.btk.listener
 
 import project.kompass.btk.util.TridentUtil
+import project.kompass.btk.util.isTrident
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.enchantments.Enchantment
@@ -21,7 +22,7 @@ class TridentRiptideListener : Listener {
         if (!event.hasItem()) return
 
         val item = event.item ?: return
-        if (!TridentUtil.isTrident(item) || !item.containsEnchantment(Enchantment.RIPTIDE)) return
+        if (!item.isTrident() || !item.containsEnchantment(Enchantment.RIPTIDE)) return
 
         val player = event.player
         val isWet = TridentUtil.isPlayerWet(player)

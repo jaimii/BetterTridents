@@ -1,6 +1,7 @@
 package project.kompass.btk.listener
 
 import project.kompass.btk.util.TridentUtil
+import project.kompass.btk.util.isTrident
 import org.bukkit.Tag
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.LivingEntity
@@ -30,7 +31,7 @@ class TridentDamageListener : Listener {
         val damager = event.damager
         if (damager is Player) {
             val item = damager.inventory.itemInMainHand
-            if (!TridentUtil.isTrident(item)) return
+            if (!item.isTrident()) return
 
             var damage = TRIDENT_BASE_DAMAGE
 

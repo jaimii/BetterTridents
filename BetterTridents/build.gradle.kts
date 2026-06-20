@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "2.0.0"
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "8.3.10"
 }
 
 group = "project.kompass"
@@ -43,7 +43,7 @@ tasks {
 
     // Direct paperweight to automatically use the shadow jar as the reobfuscation source
     shadowJar {
-        archiveClassifier.set("")
+        // archiveClassifier.set("") -> Removed to resolve the reobfJar duplicate output configuration error
 
         // Relocate Kotlin to prevent classpath conflicts with other plugins
         relocate("kotlin", "project.kompass.btk.libs.kotlin")
