@@ -34,9 +34,9 @@ object TridentUtil {
     val BLOCK_RANGE_KEY = NamespacedKey("better_tridents", "block_reach")
     val SPEED_KEY = NamespacedKey("better_tridents", "attack_speed")
 
-    val CHANNELING_PROTECTED_KEY = NamespacedKey("better_tridents", "channeling_protected")
     val CHANNELING_LIGHTNING_KEY = NamespacedKey("better_tridents", "channeling_lightning")
 
+    // Package-private visibility so our extension functions can access these sets
     internal val DAMAGE_TOOLS: Set<Material> = EnumSet.noneOf(Material::class.java)
     internal val SPEARS: Set<Material> = EnumSet.noneOf(Material::class.java)
 

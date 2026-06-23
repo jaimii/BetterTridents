@@ -1,6 +1,7 @@
 package project.kompass.btk
 
 import project.kompass.btk.listener.*
+import org.bukkit.plugin.PluginManager
 import org.bukkit.plugin.java.JavaPlugin
 
 class BTK : JavaPlugin() {
@@ -16,13 +17,7 @@ class BTK : JavaPlugin() {
         pm.registerEvents(TridentLootingListener(), this)
         pm.registerEvents(TridentAnvilListener(), this)
         pm.registerEvents(SpearListener(), this)
-        pm.registerEvents(PotionSoupStackListener(), this)
-
-        // Initiate Copper Armor hazard loops & particle task
-        val copperArmorListener = CopperArmorListener()
-        pm.registerEvents(copperArmorListener, this)
-        copperArmorListener.startArmorCheckTask(this)
-        copperArmorListener.startParticleTask(this)
+        pm.registerEvents(PotionSoupStackListener(), this) // Stacking features are kept
     }
 
     override fun onDisable() {
