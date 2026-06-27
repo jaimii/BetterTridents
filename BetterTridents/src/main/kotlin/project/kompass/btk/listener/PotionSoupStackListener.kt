@@ -103,7 +103,6 @@ class PotionSoupStackListener : Listener {
 
         if (!cursor.isPotionOrSoup() && !currentItem.isPotionOrSoup()) return
 
-        // Merging logic when grabbing more potions/soups from the creative menu catalog
         val oldCursor = event.whoClicked.itemOnCursor
         if (oldCursor != null && oldCursor.type != Material.AIR &&
             cursor != null && cursor.type != Material.AIR &&
@@ -176,7 +175,7 @@ class PotionSoupStackListener : Listener {
         updateStackSize(cursor)
 
         Bukkit.getScheduler().runTask(JavaPlugin.getPlugin(BTK::class.java), Runnable {
-            // Using event.view to handle raw slot queries safely across top & bottom inventories
+
             for (slot in event.newItems.keys) {
                 val slotItem = event.view.getItem(slot)
                 if (slotItem.isPotionOrSoup()) {

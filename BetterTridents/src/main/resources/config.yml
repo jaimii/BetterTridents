@@ -1,0 +1,32 @@
+# BetterTridents Configuration File
+
+# =========================================================================
+# ARMOR DURABILITY SYSTEM
+# =========================================================================
+#
+# Durability modifications only apply to helmets, chestplates, leggings, and boots.
+#
+# The final durability loss is calculated using the following formula:
+# Final Loss = (Original Loss * multiplier) + flat-modifier (clamped to a minimum of 0)
+#
+# Note: These custom modifications do NOT apply to Thorns durability damage
+# (Thorns durability damage is automatically halved on the server by default).
+
+# armor-durability-multiplier
+# Multiplier applied directly to the raw durability damage.
+# - Set to 1.0 for standard vanilla durability loss.
+# - Set to 0.2 to only take 20% of standard durability damage (makes armor last 5x longer).
+armor-durability-multiplier: 0.2
+
+# armor-durability-flat-modifier
+# A fixed, flat value added to or subtracted from the calculated damage.
+#
+# - Negative values (e.g., -1) act as "Durability Resistance" or "Damage Negation".
+#   For example, with a multiplier of 1.0 and a flat modifier of -1:
+#   * A minor hit that normally deals 1 durability damage becomes (1 * 1.0) - 1 = 0.
+#     This completely negates weak durability hits.
+#   * A heavy hit dealing 3 durability damage becomes (3 * 1.0) - 1 = 2.
+#
+# - Positive values (e.g., 1) add extra flat wear-and-tear on every hit, ensuring
+#   armor degrades even during minor skirmishes.
+armor-durability-flat-modifier: 0

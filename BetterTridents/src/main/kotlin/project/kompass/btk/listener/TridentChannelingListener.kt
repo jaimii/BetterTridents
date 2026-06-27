@@ -19,16 +19,13 @@ import java.util.HashMap
 
 class TridentChannelingListener(private val plugin: BTK) : Listener {
 
-    // Thread-safe memory cache that auto-purges after 10 minutes to prevent memory leaks,
-    // keeping the items NBT-free so they can merge natively on the ground at full speed.
+
     private val protectedItemsCache: Cache<UUID, Boolean> = CacheBuilder.newBuilder()
         .expireAfterWrite(10, TimeUnit.MINUTES)
         .build()
 
-    // Temporary map to track channeling mob deaths during the active tick
     private val recentChannelingDeaths = HashMap<Location, Long>()
 
-    // Handles Channeling logic when a thrown trident hits a target
     @EventHandler
     fun onTridentHit(event: ProjectileHitEvent) {
         val trident = event.entity as? Trident ?: return
@@ -120,7 +117,6 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
         }
 
         if (killedByChanneling) {
-            // Record this death location and the exact world time to register instant protection
             recentChannelingDeaths[mob.location] = mob.world.fullTime
         }
     }
@@ -128,7 +124,6 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
     // Instantly catch drops on spawn to protect them before the tick-loop can damage or ignite them
     @EventHandler(priority = EventPriority.LOWEST)
     fun onItemSpawn(event: ItemSpawnEvent) {
-        // Fast-exit optimization: 99.9% of item spawns (mining, chest breaks) bypass this instantly
         if (recentChannelingDeaths.isEmpty()) return
 
         val itemEntity = event.entity
@@ -144,13 +139,11 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
             val deathLoc = entry.key
             val deathTick = entry.value
 
-            // Prune expired ticks from memory (older than 10 ticks / 0.5s)
             if (currentTick - deathTick > 10L) {
                 iterator.remove()
                 continue
             }
 
-            // OPTIMIZATION: distanceSquared <= 4.0 (2.0^2) avoids expensive Math.sqrt calculations
             if (deathLoc.world == world && deathLoc.distanceSquared(loc) <= 4.0) {
                 isChannelingDrop = true
             }
@@ -159,24 +152,20 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
         if (isChannelingDrop) {
             protectedItemsCache.put(itemEntity.uniqueId, true)
 
-            // Extinguish the drop instantly to maintain clean, mergeable NBT tags
             itemEntity.fireTicks = 0
         }
     }
 
-    // Cancel environment damage ONLY to the cached, protected mob drops
     @EventHandler
     fun onItemDamage(event: EntityDamageEvent) {
         val item = event.entity as? Item ?: return
 
-        // If the item is in our cache, protect it and keep it extinguished
         if (protectedItemsCache.getIfPresent(item.uniqueId) != null) {
             event.isCancelled = true
             item.fireTicks = 0
         }
     }
 
-    // Propagate protection to the resulting merged stack on the ground
     @EventHandler
     fun onItemMerge(event: ItemMergeEvent) {
         val target = event.target
@@ -187,11 +176,9 @@ class TridentChannelingListener(private val plugin: BTK) : Listener {
             protectedItemsCache.put(target.uniqueId, true)
         }
 
-        // Clean up merged entity from memory
         protectedItemsCache.invalidate(entity.uniqueId)
     }
 
-    // Clean up entity UUIDs from memory when picked up or despawned
     @EventHandler
     fun onItemPickup(event: EntityPickupItemEvent) {
         protectedItemsCache.invalidate(event.item.uniqueId)
