@@ -1,7 +1,6 @@
 package project.kompass.btk
 
 import project.kompass.btk.listener.*
-import org.bukkit.plugin.PluginManager
 import org.bukkit.plugin.java.JavaPlugin
 
 class BTK : JavaPlugin() {
@@ -18,8 +17,11 @@ class BTK : JavaPlugin() {
         pm.registerEvents(TridentLootingListener(), this)
         pm.registerEvents(TridentAnvilListener(), this)
         pm.registerEvents(SpearListener(), this)
+        pm.registerEvents(ArmorDurabilityListener(this), this)
         pm.registerEvents(PotionSoupStackListener(), this)
-        pm.registerEvents(ArmorDurabilityListener(this), this) // Register durability listener
+        pm.registerEvents(BundleCapacityListener(this), this)
+        pm.registerEvents(AlwaysEatListener(this), this)
+        pm.registerEvents(EnchantablePetArmorListener(), this)
 
         val copperArmorListener = CopperArmorListener()
         pm.registerEvents(copperArmorListener, this)
@@ -28,5 +30,6 @@ class BTK : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // Plugin shutdown logic
     }
 }

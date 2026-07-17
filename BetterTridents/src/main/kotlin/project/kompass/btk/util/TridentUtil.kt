@@ -1,5 +1,6 @@
 package project.kompass.btk.util
 
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.block.Block
@@ -28,6 +29,15 @@ fun ItemStack?.isPotionOrSoup(): Boolean {
             type == Material.BEETROOT_SOUP || type == Material.SUSPICIOUS_STEW
 }
 
+// OPTIMIZATION: Uses a static bitmask Set to instantly identify bundles without string allocations
+fun ItemStack?.isBundle(): Boolean {
+    return this != null && TridentUtil.BUNDLE_MATERIALS.contains(this.type)
+}
+
+fun ItemStack?.isFood(): Boolean {
+    return this != null && this.type.isEdible
+}
+
 object TridentUtil {
 
     val RANGE_KEY = NamespacedKey("better_tridents", "reach_distance")
@@ -39,6 +49,7 @@ object TridentUtil {
     // Package-private visibility so our extension functions can access these sets
     internal val DAMAGE_TOOLS: Set<Material> = EnumSet.noneOf(Material::class.java)
     internal val SPEARS: Set<Material> = EnumSet.noneOf(Material::class.java)
+    internal val BUNDLE_MATERIALS: Set<Material> = EnumSet.noneOf(Material::class.java) // Pre-compiled bundle materials set
 
     init {
         for (material in Material.entries) {
@@ -50,6 +61,9 @@ object TridentUtil {
             }
             if (name.contains("SPEAR")) {
                 (SPEARS as EnumSet).add(material)
+            }
+            if (name == "BUNDLE" || name.endsWith("_BUNDLE")) {
+                (BUNDLE_MATERIALS as EnumSet).add(material)
             }
         }
     }

@@ -30,3 +30,11 @@ armor-durability-multiplier: 0.2
 # - Positive values (e.g., 1) add extra flat wear-and-tear on every hit, ensuring
 #   armor degrades even during minor skirmishes.
 armor-durability-flat-modifier: 0
+
+# If enabled, players can always eat food even if their hunger bar is completely full.
+always-eat-enabled: true
+
+# Configurable capacity of bundles (how many stacks of items a single bundle can hold internally).
+# Default: 1 (Standard Vanilla, holds up to 64 items/1 stack)
+# Recommended values: 2 or 4 to increase internal storage capacity.
+bundle-capacity-stacks: 2

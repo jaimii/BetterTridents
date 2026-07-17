@@ -47,16 +47,19 @@ class TridentAnvilListener : Listener {
             var canApply = false
 
             if (isTrident) {
-                if (ALLOWED_ENCHANTMENTS.contains(enchant)) {
+                // Allow standard trident enchantments OR our custom sword weapon enchantments
+                if (enchant.canEnchantItem(first) || ALLOWED_ENCHANTMENTS.contains(enchant)) {
                     canApply = true
                 }
             } else {
-                if (enchant == Enchantment.CHANNELING) {
+                // Allow standard tool enchantments OR our custom channeling enchantment
+                if (enchant.canEnchantItem(first) || enchant == Enchantment.CHANNELING) {
                     canApply = true
                 }
             }
 
             if (canApply) {
+                // Conflict checking bypassed to allow illegal combinations (e.g. Riptide + Channeling)
                 val cur = result.getEnchantmentLevel(enchant)
                 var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
 
