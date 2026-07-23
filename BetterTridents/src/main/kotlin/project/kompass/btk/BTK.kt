@@ -14,7 +14,7 @@ class BTK : JavaPlugin() {
         pm.registerEvents(TridentRiptideListener(), this)
         pm.registerEvents(TridentChannelingListener(this), this)
         pm.registerEvents(TridentDamageListener(), this)
-        pm.registerEvents(TridentLootingListener(), this)
+        pm.registerEvents(RangedLootingListener(), this)
         pm.registerEvents(TridentAnvilListener(), this)
         pm.registerEvents(SpearListener(), this)
         pm.registerEvents(ArmorDurabilityListener(this), this)
@@ -27,6 +27,10 @@ class BTK : JavaPlugin() {
         pm.registerEvents(copperArmorListener, this)
         copperArmorListener.startArmorCheckTask(this)
         copperArmorListener.startParticleTask(this)
+
+        val campfireListener = MagicalCampfireListener(this)
+        pm.registerEvents(campfireListener, this)
+        campfireListener.startCampfireTask()
     }
 
     override fun onDisable() {

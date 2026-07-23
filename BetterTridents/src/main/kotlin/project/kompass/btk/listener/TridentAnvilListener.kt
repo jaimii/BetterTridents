@@ -1,9 +1,7 @@
 package project.kompass.btk.listener
 
-import project.kompass.btk.util.isDamageDealingTool
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
-import org.bukkit.enchantments.Enchantment
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.PrepareAnvilEvent
@@ -13,26 +11,13 @@ class TridentAnvilListener : Listener {
 
     companion object {
         private const val ANVIL_REPAIR_COST = 5
-        private val ALLOWED_ENCHANTMENTS = setOf(
-            Enchantment.SHARPNESS,
-            Enchantment.SMITE,
-            Enchantment.BANE_OF_ARTHROPODS,
-            Enchantment.LOOTING,
-            Enchantment.FIRE_ASPECT
-        )
     }
 
     @EventHandler
     fun onAnvilUse(event: PrepareAnvilEvent) {
         val first = event.inventory.getItem(0)
         val second = event.inventory.getItem(1)
-        if (first == null || second == null) return
-
-        val type = first.type
-        val isTrident = type == Material.TRIDENT
-        val isTool = first.isDamageDealingTool()
-
-        if (!isTrident && !isTool) return
+        if (first == null || second == null || first.type == Material.AIR) return
 
         val result = first.clone()
         val incoming = if (second.type == Material.ENCHANTED_BOOK) {
@@ -44,32 +29,15 @@ class TridentAnvilListener : Listener {
         var added = 0
 
         for ((enchant, incomingLvl) in incoming) {
-            var canApply = false
+            val cur = result.getEnchantmentLevel(enchant)
+            var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
 
-            if (isTrident) {
-                // Allow standard trident enchantments OR our custom sword weapon enchantments
-                if (enchant.canEnchantItem(first) || ALLOWED_ENCHANTMENTS.contains(enchant)) {
-                    canApply = true
-                }
-            } else {
-                // Allow standard tool enchantments OR our custom channeling enchantment
-                if (enchant.canEnchantItem(first) || enchant == Enchantment.CHANNELING) {
-                    canApply = true
-                }
-            }
+            val maxLevel = enchant.maxLevel
+            next = Math.min(next, maxLevel)
 
-            if (canApply) {
-                // Conflict checking bypassed to allow illegal combinations (e.g. Riptide + Channeling)
-                val cur = result.getEnchantmentLevel(enchant)
-                var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
-
-                val maxLevel = enchant.maxLevel
-                next = Math.min(next, maxLevel)
-
-                if (next > cur) {
-                    result.addUnsafeEnchantment(enchant, next)
-                    added++
-                }
+            if (next > cur) {
+                result.addUnsafeEnchantment(enchant, next)
+                added++
             }
         }
 

@@ -1,5 +1,6 @@
 package project.kompass.btk.util
 
+import project.kompass.btk.hook.ConsumeFood2Hook
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -29,13 +30,27 @@ fun ItemStack?.isPotionOrSoup(): Boolean {
             type == Material.BEETROOT_SOUP || type == Material.SUSPICIOUS_STEW
 }
 
-// OPTIMIZATION: Uses a static bitmask Set to instantly identify bundles without string allocations
 fun ItemStack?.isBundle(): Boolean {
     return this != null && TridentUtil.BUNDLE_MATERIALS.contains(this.type)
 }
 
+// Multi-Layer Food Check: Validates vanilla food, ConsumeFood2 items, and Paper FoodComponents
 fun ItemStack?.isFood(): Boolean {
-    return this != null && this.type.isEdible
+    if (this == null || this.type == Material.AIR) return false
+
+    // 1. Check native vanilla edible flag
+    if (this.type.isEdible) return true
+
+    // 2. Check if registered inside ConsumeFood2 (handles non-vanilla custom items)
+    if (ConsumeFood2Hook.isConsumeFoodMaterial(this.type)) return true
+
+    // 3. Check if carrying a Paper FoodComponent
+    if (this.hasItemMeta()) {
+        val meta = this.itemMeta
+        if (meta != null && meta.hasFood()) return true
+    }
+
+    return false
 }
 
 object TridentUtil {
@@ -45,11 +60,11 @@ object TridentUtil {
     val SPEED_KEY = NamespacedKey("better_tridents", "attack_speed")
 
     val CHANNELING_LIGHTNING_KEY = NamespacedKey("better_tridents", "channeling_lightning")
+    val LOOTING_KEY = NamespacedKey("better_tridents", "looting_level")
 
-    // Package-private visibility so our extension functions can access these sets
     internal val DAMAGE_TOOLS: Set<Material> = EnumSet.noneOf(Material::class.java)
     internal val SPEARS: Set<Material> = EnumSet.noneOf(Material::class.java)
-    internal val BUNDLE_MATERIALS: Set<Material> = EnumSet.noneOf(Material::class.java) // Pre-compiled bundle materials set
+    internal val BUNDLE_MATERIALS: Set<Material> = EnumSet.noneOf(Material::class.java)
 
     init {
         for (material in Material.entries) {

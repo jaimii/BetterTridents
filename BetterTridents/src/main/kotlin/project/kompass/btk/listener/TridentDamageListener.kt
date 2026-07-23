@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.potion.PotionEffect
 import org.bukkit.potion.PotionEffectType
 import java.util.Random
@@ -26,6 +27,9 @@ class TridentDamageListener : Listener {
 
     @EventHandler(priority = EventPriority.NORMAL)
     fun onTridentDamage(event: EntityDamageByEntityEvent) {
+        // Ignore Thorns damage reflection so custom trident melee math isn't applied to Thorns hits
+        if (event.cause == EntityDamageEvent.DamageCause.THORNS) return
+
         val victim = event.entity as? LivingEntity ?: return
 
         val damager = event.damager

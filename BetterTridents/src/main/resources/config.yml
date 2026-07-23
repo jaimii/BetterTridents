@@ -1,8 +1,4 @@
 # BetterTridents Configuration File
-
-# =========================================================================
-# ARMOR DURABILITY SYSTEM
-# =========================================================================
 #
 # Durability modifications only apply to helmets, chestplates, leggings, and boots.
 #
@@ -15,8 +11,8 @@
 # armor-durability-multiplier
 # Multiplier applied directly to the raw durability damage.
 # - Set to 1.0 for standard vanilla durability loss.
-# - Set to 0.2 to only take 20% of standard durability damage (makes armor last 5x longer).
-armor-durability-multiplier: 0.2
+# - Set to 0.25 to only take 25% of standard durability damage (makes armor last 5x longer).
+armor-durability-multiplier: 0.25
 
 # armor-durability-flat-modifier
 # A fixed, flat value added to or subtracted from the calculated damage.
@@ -36,5 +32,24 @@ always-eat-enabled: true
 
 # Configurable capacity of bundles (how many stacks of items a single bundle can hold internally).
 # Default: 1 (Standard Vanilla, holds up to 64 items/1 stack)
-# Recommended values: 2 or 4 to increase internal storage capacity.
 bundle-capacity-stacks: 2
+
+# Configurable healing campfires.
+magical-campfire:
+  enabled: true
+  campfire:
+    enabled: true
+    require-lit: true
+    amount: 1.0 # Half-heart per interval
+    range: 8
+    actionbar:
+      enabled: true
+      message: "<gold>You feel the warmth healing you."
+  soul-campfire:
+    enabled: true
+    require-lit: true
+    amount: 0.5
+    range: 16
+    actionbar:
+      enabled: true
+      message: "<cyan>The soul flame restores your energy."

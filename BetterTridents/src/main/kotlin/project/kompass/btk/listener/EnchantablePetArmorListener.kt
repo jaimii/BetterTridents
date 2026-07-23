@@ -3,10 +3,9 @@ package project.kompass.btk.listener
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.enchantments.Enchantment
-import org.bukkit.entity.Horse
+import org.bukkit.entity.EntityType
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Projectile
-import org.bukkit.entity.Wolf
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -17,6 +16,7 @@ import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.Damageable
 import org.bukkit.inventory.meta.EnchantmentStorageMeta
+import java.util.EnumSet
 import java.util.Random
 
 class EnchantablePetArmorListener : Listener {
@@ -24,26 +24,25 @@ class EnchantablePetArmorListener : Listener {
     private val random = Random()
 
     companion object {
-        // Enchants allowed to be combined onto pet armor in anvils
-        private val ALLOWED_PET_ARMOR_ENCHANTS = setOf(
-            Enchantment.PROTECTION,
-            Enchantment.FIRE_PROTECTION,
-            Enchantment.PROJECTILE_PROTECTION,
-            Enchantment.BLAST_PROTECTION,
-            Enchantment.THORNS,
-            Enchantment.UNBREAKING,
-            Enchantment.MENDING
+        // Fast-exit set containing only entity types that can wear pet armor
+        private val PET_ENTITY_TYPES: Set<EntityType> = EnumSet.of(
+            EntityType.HORSE,
+            EntityType.DONKEY,
+            EntityType.MULE,
+            EntityType.ZOMBIE_HORSE,
+            EntityType.SKELETON_HORSE,
+            EntityType.LLAMA,
+            EntityType.TRADER_LLAMA,
+            EntityType.WOLF
         )
     }
 
     private fun isPetArmor(item: ItemStack?): Boolean {
         if (item == null || item.type == Material.AIR) return false
-        val type = item.type
-        return type == Material.WOLF_ARMOR ||
-                type == Material.LEATHER_HORSE_ARMOR ||
-                type == Material.IRON_HORSE_ARMOR ||
-                type == Material.GOLDEN_HORSE_ARMOR ||
-                type == Material.DIAMOND_HORSE_ARMOR
+        val name = item.type.name
+        return name == "WOLF_ARMOR" ||
+                name.contains("HORSE_ARMOR") ||
+                name.contains("NAUTILUS")
     }
 
     @EventHandler
@@ -64,17 +63,15 @@ class EnchantablePetArmorListener : Listener {
         var added = 0
 
         for ((enchant, incomingLvl) in incoming) {
-            if (ALLOWED_PET_ARMOR_ENCHANTS.contains(enchant)) {
-                val cur = result.getEnchantmentLevel(enchant)
-                var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
+            val cur = result.getEnchantmentLevel(enchant)
+            var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
 
-                val maxLevel = enchant.maxLevel
-                next = Math.min(next, maxLevel)
+            val maxLevel = enchant.maxLevel
+            next = Math.min(next, maxLevel)
 
-                if (next > cur) {
-                    result.addUnsafeEnchantment(enchant, next)
-                    added++
-                }
+            if (next > cur) {
+                result.addUnsafeEnchantment(enchant, next)
+                added++
             }
         }
 
@@ -92,11 +89,12 @@ class EnchantablePetArmorListener : Listener {
         }
     }
 
-    // Applies defensive enchantment benefits to the wearing pet
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     fun onPetDamage(event: EntityDamageEvent) {
         val entity = event.entity as? LivingEntity ?: return
-        if (entity !is Horse && entity !is Wolf) return
+
+        // Fast-Exit Guard: 99.9% of damage events (players, zombies, cows) bypass instantly
+        if (!PET_ENTITY_TYPES.contains(entity.type)) return
 
         val armor = getEquippedPetArmor(entity) ?: return
         var damage = event.damage
@@ -122,7 +120,7 @@ class EnchantablePetArmorListener : Listener {
             }
         }
 
-        // 3. Blast Protection (Explosions)
+        // 3. Blast Protection
         if (cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION ||
             cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
 
@@ -147,22 +145,23 @@ class EnchantablePetArmorListener : Listener {
         event.damage = damage
     }
 
-    // Handles Thorns triggering on attackers
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     fun onPetThornsDamage(event: EntityDamageByEntityEvent) {
         val entity = event.entity as? LivingEntity ?: return
-        if (entity !is Horse && entity !is Wolf) return
+
+        // Fast-Exit Guard: Instant check for pet types
+        if (!PET_ENTITY_TYPES.contains(entity.type)) return
 
         val attacker = event.damager as? LivingEntity ?: return
         val armor = getEquippedPetArmor(entity) ?: return
 
-        // 5. Thorns on Pet Armor
+        // 5. Thorns
         if (armor.containsEnchantment(Enchantment.THORNS)) {
             val level = armor.getEnchantmentLevel(Enchantment.THORNS)
             val chance = level * 0.15
 
             if (random.nextDouble() < chance) {
-                val thornsDamage = 1.0 + random.nextInt(4) // 1 to 4 damage
+                val thornsDamage = 1.0 + random.nextInt(4)
                 attacker.damage(thornsDamage, entity)
 
                 entity.world.playSound(entity.location, Sound.ENCHANT_THORNS_HIT, 1.0f, 1.0f)
@@ -173,30 +172,26 @@ class EnchantablePetArmorListener : Listener {
 
     private fun getEquippedPetArmor(entity: LivingEntity): ItemStack? {
         val equipment = entity.equipment ?: return null
-        // EquipmentSlot.BODY is the standard pet body armor slot starting in 1.20.5+
         var armor = equipment.getItem(EquipmentSlot.BODY)
         if (armor == null || armor.type == Material.AIR) {
-            // Fallback to CHEST slot for older Spigot mapping configs
             armor = equipment.getItem(EquipmentSlot.CHEST)
         }
-        return if (armor != null && armor.type != Material.AIR) armor else null
+        return if (isPetArmor(armor)) armor else null
     }
 
     private fun damagePetArmorDurability(entity: LivingEntity, armor: ItemStack, amount: Int) {
         val meta = armor.itemMeta ?: return
         if (meta is Damageable) {
-            // Check for Unbreaking enchantment
             if (armor.containsEnchantment(Enchantment.UNBREAKING)) {
                 val level = armor.getEnchantmentLevel(Enchantment.UNBREAKING)
                 val chance = 1.0 / (level + 1)
                 if (random.nextDouble() >= chance) {
-                    return // Durability damage negated by Unbreaking
+                    return
                 }
             }
 
             val newDamage = meta.damage + amount
             if (newDamage >= armor.type.maxDurability) {
-                // Armor broke
                 entity.world.playSound(entity.location, Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
                 val equipment = entity.equipment
                 if (equipment != null) {
