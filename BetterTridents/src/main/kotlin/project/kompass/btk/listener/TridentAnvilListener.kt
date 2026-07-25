@@ -2,15 +2,38 @@ package project.kompass.btk.listener
 
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
+import org.bukkit.enchantments.Enchantment
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.PrepareAnvilEvent
+import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.EnchantmentStorageMeta
 
 class TridentAnvilListener : Listener {
 
     companion object {
         private const val ANVIL_REPAIR_COST = 5
+    }
+
+    // Handles reading enchantments accurately for both standard items and Enchanted Books
+    private fun getEnchantLevel(item: ItemStack, enchant: Enchantment): Int {
+        return if (item.type == Material.ENCHANTED_BOOK) {
+            val meta = item.itemMeta as? EnchantmentStorageMeta
+            meta?.getStoredEnchantLevel(enchant) ?: 0
+        } else {
+            item.getEnchantmentLevel(enchant)
+        }
+    }
+
+    // Handles writing enchantments accurately for both standard items and Enchanted Books
+    private fun addEnchant(item: ItemStack, enchant: Enchantment, level: Int) {
+        if (item.type == Material.ENCHANTED_BOOK) {
+            val meta = item.itemMeta as? EnchantmentStorageMeta ?: return
+            meta.addStoredEnchant(enchant, level, true)
+            item.itemMeta = meta
+        } else {
+            item.addUnsafeEnchantment(enchant, level)
+        }
     }
 
     @EventHandler
@@ -29,14 +52,15 @@ class TridentAnvilListener : Listener {
         var added = 0
 
         for ((enchant, incomingLvl) in incoming) {
-            val cur = result.getEnchantmentLevel(enchant)
+            val cur = getEnchantLevel(result, enchant)
             var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
 
+            // Capped at vanilla max level limit (prevents overleveling while allowing level-ups)
             val maxLevel = enchant.maxLevel
             next = Math.min(next, maxLevel)
 
             if (next > cur) {
-                result.addUnsafeEnchantment(enchant, next)
+                addEnchant(result, enchant, next)
                 added++
             }
         }

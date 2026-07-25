@@ -2,18 +2,29 @@ package project.kompass.btk.listener
 
 import org.bukkit.Bukkit
 import org.bukkit.Material
+import org.bukkit.Particle
 import org.bukkit.World
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Mob
 import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
+import java.util.EnumSet
 import java.util.HashSet
 import java.util.Random
 
 class CopperArmorListener : Listener {
 
     private val random = Random()
+
+    companion object {
+        private val COPPER_ARMOR_MATERIALS: Set<Material> = EnumSet.of(
+            Material.COPPER_HELMET,
+            Material.COPPER_CHESTPLATE,
+            Material.COPPER_LEGGINGS,
+            Material.COPPER_BOOTS
+        )
+    }
 
     fun startArmorCheckTask(plugin: JavaPlugin) {
         object : BukkitRunnable() {
@@ -27,13 +38,11 @@ class CopperArmorListener : Listener {
                     val playerHighestY = world.getHighestBlockYAt(player.location)
                     if (player.location.blockY < playerHighestY) continue
 
-                    // 1. Process the player
                     if (!processed.contains(player)) {
                         processed.add(player)
                         checkAndStrike(player, world)
                     }
 
-                    // 2. Scan a local 32-block box around the player for nearby mobs
                     val radius = 32.0
                     for (nearby in player.getNearbyEntities(radius, radius, radius)) {
                         if (nearby is Mob) {
@@ -48,7 +57,7 @@ class CopperArmorListener : Listener {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 600L, 600L)
+        }.runTaskTimer(plugin, 600L, 600L) // Runs every 30 seconds
     }
 
     fun startParticleTask(plugin: JavaPlugin) {
@@ -60,7 +69,6 @@ class CopperArmorListener : Listener {
                     val world = player.world
                     if (!world.hasStorm()) continue
 
-                    // Process player particles
                     if (!processed.contains(player)) {
                         processed.add(player)
                         val playerHighestY = world.getHighestBlockYAt(player.location)
@@ -69,7 +77,6 @@ class CopperArmorListener : Listener {
                         }
                     }
 
-                    // Process nearby mob particles within a 32-block radius
                     val radius = 32.0
                     for (nearby in player.getNearbyEntities(radius, radius, radius)) {
                         if (nearby is Mob) {
@@ -84,7 +91,7 @@ class CopperArmorListener : Listener {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 10L, 10L)
+        }.runTaskTimer(plugin, 10L, 10L) // Runs every 0.5 seconds
     }
 
     private fun checkAndStrike(entity: LivingEntity, world: World) {
@@ -127,7 +134,7 @@ class CopperArmorListener : Listener {
         val offsetZ = 0.15 * copperCount
 
         world.spawnParticle(
-            org.bukkit.Particle.ELECTRIC_SPARK,
+            Particle.ELECTRIC_SPARK,
             entity.location.add(0.0, offsetY, 0.0),
             particleCount,
             offsetX,
@@ -138,9 +145,6 @@ class CopperArmorListener : Listener {
     }
 
     private fun isCopperArmor(type: Material): Boolean {
-        return type == Material.COPPER_HELMET ||
-                type == Material.COPPER_CHESTPLATE ||
-                type == Material.COPPER_LEGGINGS ||
-                type == Material.COPPER_BOOTS
+        return COPPER_ARMOR_MATERIALS.contains(type)
     }
 }

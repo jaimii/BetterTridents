@@ -15,17 +15,27 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.java.JavaPlugin
+import java.util.EnumSet
 
 class PotionSoupStackListener : Listener {
 
-    // Helper method identifying custom stackable targets
+    companion object {
+        private val STACK_TARGET_MATERIALS: Set<Material> = EnumSet.of(
+            Material.POTION,
+            Material.SPLASH_POTION,
+            Material.LINGERING_POTION,
+            Material.MUSHROOM_STEW,
+            Material.RABBIT_STEW,
+            Material.BEETROOT_SOUP,
+            Material.SUSPICIOUS_STEW,
+            Material.CAKE,
+            Material.TOTEM_OF_UNDYING
+        )
+    }
+
+    // Nanosecond O(1) bitmask check
     private fun isStackTarget(item: ItemStack?): Boolean {
-        if (item == null || item.type == Material.AIR) return false
-        val type = item.type
-        return type == Material.POTION || type == Material.SPLASH_POTION || type == Material.LINGERING_POTION ||
-                type == Material.MUSHROOM_STEW || type == Material.RABBIT_STEW ||
-                type == Material.BEETROOT_SOUP || type == Material.SUSPICIOUS_STEW ||
-                type == Material.CAKE || type == Material.TOTEM_OF_UNDYING // Added Totem of Undying
+        return item != null && STACK_TARGET_MATERIALS.contains(item.type)
     }
 
     private fun updateStackSize(item: ItemStack?) {
@@ -99,9 +109,6 @@ class PotionSoupStackListener : Listener {
         updateStackSize(currentItem)
         updateStackSize(cursor)
 
-        event.currentItem = currentItem
-        event.whoClicked.setItemOnCursor(cursor)
-
         Bukkit.getScheduler().runTask(JavaPlugin.getPlugin(BTK::class.java), Runnable {
             event.clickedInventory?.let {
                 val slotItem = it.getItem(event.slot)
@@ -128,7 +135,6 @@ class PotionSoupStackListener : Listener {
 
         if (!isStackTarget(cursor) && !isStackTarget(currentItem)) return
 
-        // Merging logic when grabbing more items from creative catalog
         val oldCursor = event.whoClicked.itemOnCursor
         if (oldCursor != null && oldCursor.type != Material.AIR &&
             cursor != null && cursor.type != Material.AIR &&
@@ -161,9 +167,6 @@ class PotionSoupStackListener : Listener {
         } else {
             updateStackSize(currentItem)
             updateStackSize(cursor)
-
-            event.currentItem = currentItem
-            event.whoClicked.setItemOnCursor(cursor)
         }
 
         Bukkit.getScheduler().runTask(JavaPlugin.getPlugin(BTK::class.java), Runnable {
@@ -263,9 +266,6 @@ class PotionSoupStackListener : Listener {
         updateStackSize(currentItem)
         updateStackSize(cursor)
         updateStackSize(result)
-
-        event.currentItem = currentItem
-        event.whoClicked.setItemOnCursor(cursor)
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

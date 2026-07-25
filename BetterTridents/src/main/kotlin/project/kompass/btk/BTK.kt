@@ -22,18 +22,20 @@ class BTK : JavaPlugin() {
         pm.registerEvents(BundleCapacityListener(this), this)
         pm.registerEvents(AlwaysEatListener(this), this)
         pm.registerEvents(EnchantablePetArmorListener(), this)
+        pm.registerEvents(WindChargeListener(this), this) // Registered Wind Charge Listener
 
+        // Initiate Copper Armor hazard loops & particle task
         val copperArmorListener = CopperArmorListener()
         pm.registerEvents(copperArmorListener, this)
         copperArmorListener.startArmorCheckTask(this)
         copperArmorListener.startParticleTask(this)
 
+        // Initiate Magical Campfire task
         val campfireListener = MagicalCampfireListener(this)
         pm.registerEvents(campfireListener, this)
         campfireListener.startCampfireTask()
     }
 
     override fun onDisable() {
-        // Plugin shutdown logic
     }
 }

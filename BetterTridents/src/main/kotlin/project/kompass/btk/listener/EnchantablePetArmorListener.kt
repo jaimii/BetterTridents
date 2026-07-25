@@ -24,7 +24,6 @@ class EnchantablePetArmorListener : Listener {
     private val random = Random()
 
     companion object {
-        // Fast-exit set containing only entity types that can wear pet armor
         private val PET_ENTITY_TYPES: Set<EntityType> = EnumSet.of(
             EntityType.HORSE,
             EntityType.DONKEY,
@@ -45,6 +44,25 @@ class EnchantablePetArmorListener : Listener {
                 name.contains("NAUTILUS")
     }
 
+    private fun getEnchantLevel(item: ItemStack, enchant: Enchantment): Int {
+        return if (item.type == Material.ENCHANTED_BOOK) {
+            val meta = item.itemMeta as? EnchantmentStorageMeta
+            meta?.getStoredEnchantLevel(enchant) ?: 0
+        } else {
+            item.getEnchantmentLevel(enchant)
+        }
+    }
+
+    private fun addEnchant(item: ItemStack, enchant: Enchantment, level: Int) {
+        if (item.type == Material.ENCHANTED_BOOK) {
+            val meta = item.itemMeta as? EnchantmentStorageMeta ?: return
+            meta.addStoredEnchant(enchant, level, true)
+            item.itemMeta = meta
+        } else {
+            item.addUnsafeEnchantment(enchant, level)
+        }
+    }
+
     @EventHandler
     fun onAnvilUse(event: PrepareAnvilEvent) {
         val first = event.inventory.getItem(0)
@@ -63,14 +81,15 @@ class EnchantablePetArmorListener : Listener {
         var added = 0
 
         for ((enchant, incomingLvl) in incoming) {
-            val cur = result.getEnchantmentLevel(enchant)
+            val cur = getEnchantLevel(result, enchant)
             var next = if (cur == incomingLvl) cur + 1 else Math.max(cur, incomingLvl)
 
+            // Capped at vanilla max level limit
             val maxLevel = enchant.maxLevel
             next = Math.min(next, maxLevel)
 
             if (next > cur) {
-                result.addUnsafeEnchantment(enchant, next)
+                addEnchant(result, enchant, next)
                 added++
             }
         }
@@ -92,21 +111,17 @@ class EnchantablePetArmorListener : Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     fun onPetDamage(event: EntityDamageEvent) {
         val entity = event.entity as? LivingEntity ?: return
-
-        // Fast-Exit Guard: 99.9% of damage events (players, zombies, cows) bypass instantly
         if (!PET_ENTITY_TYPES.contains(entity.type)) return
 
         val armor = getEquippedPetArmor(entity) ?: return
         var damage = event.damage
 
-        // 1. Generic Protection
         if (armor.containsEnchantment(Enchantment.PROTECTION)) {
             val level = armor.getEnchantmentLevel(Enchantment.PROTECTION)
             val reduction = Math.min(0.8, level * 0.04)
             damage *= (1.0 - reduction)
         }
 
-        // 2. Fire Protection
         val cause = event.cause
         if (cause == EntityDamageEvent.DamageCause.FIRE ||
             cause == EntityDamageEvent.DamageCause.FIRE_TICK ||
@@ -120,7 +135,6 @@ class EnchantablePetArmorListener : Listener {
             }
         }
 
-        // 3. Blast Protection
         if (cause == EntityDamageEvent.DamageCause.BLOCK_EXPLOSION ||
             cause == EntityDamageEvent.DamageCause.ENTITY_EXPLOSION) {
 
@@ -131,7 +145,6 @@ class EnchantablePetArmorListener : Listener {
             }
         }
 
-        // 4. Projectile Protection
         if (event is EntityDamageByEntityEvent) {
             if (event.damager is Projectile) {
                 if (armor.containsEnchantment(Enchantment.PROJECTILE_PROTECTION)) {
@@ -148,14 +161,11 @@ class EnchantablePetArmorListener : Listener {
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     fun onPetThornsDamage(event: EntityDamageByEntityEvent) {
         val entity = event.entity as? LivingEntity ?: return
-
-        // Fast-Exit Guard: Instant check for pet types
         if (!PET_ENTITY_TYPES.contains(entity.type)) return
 
         val attacker = event.damager as? LivingEntity ?: return
         val armor = getEquippedPetArmor(entity) ?: return
 
-        // 5. Thorns
         if (armor.containsEnchantment(Enchantment.THORNS)) {
             val level = armor.getEnchantmentLevel(Enchantment.THORNS)
             val chance = level * 0.15
